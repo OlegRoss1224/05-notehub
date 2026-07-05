@@ -21,7 +21,7 @@ export async function fetchNotes(
   page: number,
   perPage: number = 12,
 ): Promise<FetchNotesResponse> {
-  const response = await axiosInstance.get<FetchNotesResponse>("/Notes", {
+  const response = await axiosInstance.get<FetchNotesResponse>("/notes", {
     params: {
       search,
       page,
@@ -32,10 +32,10 @@ export async function fetchNotes(
 }
 
 export async function createNote(noteData: CreateNoteInput): Promise<Note> {
-  const response = await axiosInstance.post<Note>("/Notes", noteData);
+  const response = await axiosInstance.post<Note>("/notes", noteData);
   return response.data;
 }
 export async function deleteNote(id: string): Promise<Note> {
-  const response = await axiosInstance.delete<Note>(`/Notes/${id}`);
+  const response = await axiosInstance.delete<Note>(`/notes/${id}`);
   return response.data;
 }

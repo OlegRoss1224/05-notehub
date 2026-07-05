@@ -1,49 +1,32 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchNotes, createNote, deleteNote } from "../../services/noteService";
-import type { CreateNoteInput } from "../../types/note";
+import { useQuery } from "@tanstack/react-query";
+import { useDebounce } from "use-debounce";
+import { fetchNotes } from "../../services/noteService";
 import { SearchBox } from "../SearchBox/SearchBox";
 import { NoteList } from "../NoteList/NoteList";
-import { NoteForm } from "..//NoteForm/NoteForm";
-import { Pagination } from "..//Pagination/Pagination";
-import { Modal } from "..//Modal/Modal";
+import { NoteForm } from "../NoteForm/NoteForm";
+import { Pagination } from "../Pagination/Pagination";
+import { Modal } from "../Modal/Modal";
 import css from "./App.module.css";
 
 export default function App() {
-  const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const perPage = 12;
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["notes", query, page, perPage],
-    queryFn: () => fetchNotes(query, page, perPage),
-    placeholderData: (previousData) => previousData,
-  });
-
-  const createMutation = useMutation({
-    mutationFn: (noteData: CreateNoteInput) => createNote(noteData),
-    onSuccess: () => {
-      setIsModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteNote(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-    },
-    onError: (error) => {
-      console.error("Не удалось удалить нотатку:", error);
-    },
-  });
+  const [debouncedQuery] = useDebounce(query, 1000);
 
   const handleSearchChange = (value: string) => {
     setQuery(value);
     setPage(1);
   };
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["notes", debouncedQuery, page, perPage],
+    queryFn: () => fetchNotes(debouncedQuery, page, perPage),
+    placeholderData: (previousData) => previousData,
+  });
 
   const notesList = data?.notes || [];
   const totalPages = data?.totalPages || 1;
@@ -65,22 +48,19 @@ export default function App() {
       </header>
 
       <main className={css.mainContent}>
-        {isLoading && <p className={css.loader}>Загрузка нотаток...</p>}
+        {isLoading && <p className={css.loader}>Загрузка карточек...</p>}
         {isError && <p className={css.error}>Ошибка загрузки данных!</p>}
 
         {!isLoading && !isError && notesList.length === 0 && (
           <p className={css.empty}>Коллекция пустая или ничего не найдено.</p>
         )}
 
-        <NoteList
-          notes={notesList}
-          onDelete={(id) => deleteMutation.mutate(id)}
-        />
+        <NoteList notes={notesList} />
       </main>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <NoteForm
-          onSubmit={(noteData) => createMutation.mutate(noteData)}
+          onSuccessClose={() => setIsModalOpen(false)}
           onCancel={() => setIsModalOpen(false)}
         />
       </Modal>

@@ -1,5 +1,7 @@
 import React from "react";
-import * as ReactPaginateModule from "react-paginate";
+import type { ComponentType } from "react";
+import ReactPaginateModule from "react-paginate";
+import type { ReactPaginateProps } from "react-paginate";
 import css from "./Pagination.module.css";
 
 interface PaginationProps {
@@ -7,6 +9,14 @@ interface PaginationProps {
   totalPages: number;
   onPageChange: (page: number) => void;
 }
+
+type ModuleWithDefault<T> = { default: T };
+
+const ReactPaginate = (
+  ReactPaginateModule as unknown as ModuleWithDefault<
+    ComponentType<ReactPaginateProps>
+  >
+).default;
 
 export const Pagination: React.FC<PaginationProps> = ({
   currentPage,
@@ -19,11 +29,6 @@ export const Pagination: React.FC<PaginationProps> = ({
     onPageChange(event.selected + 1);
   };
 
-  const ReactPaginate =
-    (ReactPaginateModule as any).default?.default ||
-    (ReactPaginateModule as any).default ||
-    ReactPaginateModule;
-
   return (
     <ReactPaginate
       breakLabel="..."
@@ -35,6 +40,7 @@ export const Pagination: React.FC<PaginationProps> = ({
       pageCount={totalPages}
       forcePage={currentPage - 1}
       containerClassName={css.pagination}
+      activeClassName={css.active}
       pageClassName=""
       pageLinkClassName=""
       previousClassName=""
@@ -43,8 +49,6 @@ export const Pagination: React.FC<PaginationProps> = ({
       nextLinkClassName=""
       breakClassName=""
       breakLinkClassName=""
-      activeClassName={css.active}
-      disabledClassName={css.disabled}
     />
   );
 };

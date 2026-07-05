@@ -1,10 +1,12 @@
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { CreateNoteInput } from "../../types/note";
+import { createNote } from "../../services/noteService";
 import css from "./NoteForm.module.css";
 
 interface NoteFormProps {
-  onSubmit: (noteData: CreateNoteInput) => void;
+  onSuccessClose: () => void;
   onCancel: () => void;
 }
 
@@ -24,7 +26,26 @@ const NoteSchema = Yup.object().shape({
     .required("Это обязательное поле!"),
 });
 
-export const NoteForm: React.FC<NoteFormProps> = ({ onSubmit, onCancel }) => {
+export const NoteForm: React.FC<NoteFormProps> = ({
+  onSuccessClose,
+  onCancel,
+}) => {
+  const queryClient = useQueryClient();
+
+  const createMutation = useMutation({
+    mutationFn: (noteData: CreateNoteInput) => createNote(noteData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      onSuccessClose();
+    },
+    onError: (error) => {
+      console.error(
+        "Помилка при створенні нотатки через TanStack Query:",
+        error,
+      );
+    },
+  });
+
   const initialValues: CreateNoteInput = {
     title: "",
     content: "",
@@ -36,7 +57,7 @@ export const NoteForm: React.FC<NoteFormProps> = ({ onSubmit, onCancel }) => {
       initialValues={initialValues}
       validationSchema={NoteSchema}
       onSubmit={(values, { resetForm }) => {
-        onSubmit(values);
+        createMutation.mutate(values);
         resetForm();
       }}
     >
@@ -87,9 +108,9 @@ export const NoteForm: React.FC<NoteFormProps> = ({ onSubmit, onCancel }) => {
             <button
               type="submit"
               className={css.submitButton}
-              disabled={isSubmitting}
+              disabled={createMutation.isPending || isSubmitting}
             >
-              Create note
+              {createMutation.isPending ? "Creating..." : "Create note"}
             </button>
           </div>
         </Form>
